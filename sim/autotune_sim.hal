@@ -1,0 +1,72 @@
+# Simulated servo drives for lcnc-autotune, see autotune_sim.ini
+loadrt [KINS]KINEMATICS
+loadrt [EMCMOT]EMCMOT servo_period_nsec=[EMCMOT]SERVO_PERIOD num_joints=[KINS]JOINTS
+loadrt pid names=pid.x,pid.z
+loadrt mult2 names=drv.x.gain,drv.z.gain
+loadrt lowpass names=drv.x.lag1,drv.x.lag2,drv.z.lag1,drv.z.lag2
+loadrt integ names=drv.x.pos,drv.z.pos
+
+addf motion-command-handler servo-thread
+addf motion-controller servo-thread
+addf pid.x.do-pid-calcs servo-thread
+addf pid.z.do-pid-calcs servo-thread
+addf drv.x.gain servo-thread
+addf drv.x.lag1 servo-thread
+addf drv.x.lag2 servo-thread
+addf drv.x.pos servo-thread
+addf drv.z.gain servo-thread
+addf drv.z.lag1 servo-thread
+addf drv.z.lag2 servo-thread
+addf drv.z.pos servo-thread
+
+net estop-loop iocontrol.0.user-enable-out => iocontrol.0.emc-enable-in
+net tool-change iocontrol.0.tool-change => iocontrol.0.tool-changed
+net tool-prep iocontrol.0.tool-prepare => iocontrol.0.tool-prepared
+
+# ---- joint 0 (X) ----
+setp pid.x.Pgain     [JOINT_0]P
+setp pid.x.Igain     [JOINT_0]I
+setp pid.x.Dgain     [JOINT_0]D
+setp pid.x.bias      [JOINT_0]BIAS
+setp pid.x.FF0       [JOINT_0]FF0
+setp pid.x.FF1       [JOINT_0]FF1
+setp pid.x.FF2       [JOINT_0]FF2
+setp pid.x.deadband  [JOINT_0]DEADBAND
+setp pid.x.maxoutput [JOINT_0]MAX_OUTPUT
+setp pid.x.maxerror  [JOINT_0]MAX_ERROR
+setp pid.x.error-previous-target true
+setp drv.x.gain.in1  [JOINT_0]SIM_GAIN
+setp drv.x.lag1.gain [JOINT_0]SIM_LAG1_GAIN
+setp drv.x.lag2.gain [JOINT_0]SIM_LAG2_GAIN
+
+net joint0.enable  joint.0.amp-enable-out => pid.x.enable
+net joint0.pos-cmd joint.0.motor-pos-cmd  => pid.x.command
+net joint0.output  pid.x.output           => drv.x.gain.in0
+net joint0.drv-a   drv.x.gain.out         => drv.x.lag1.in
+net joint0.drv-b   drv.x.lag1.out         => drv.x.lag2.in
+net joint0.drv-vel drv.x.lag2.out         => drv.x.pos.in
+net joint0.pos-fb  drv.x.pos.out          => joint.0.motor-pos-fb pid.x.feedback
+
+# ---- joint 1 (Z) ----
+setp pid.z.Pgain     [JOINT_1]P
+setp pid.z.Igain     [JOINT_1]I
+setp pid.z.Dgain     [JOINT_1]D
+setp pid.z.bias      [JOINT_1]BIAS
+setp pid.z.FF0       [JOINT_1]FF0
+setp pid.z.FF1       [JOINT_1]FF1
+setp pid.z.FF2       [JOINT_1]FF2
+setp pid.z.deadband  [JOINT_1]DEADBAND
+setp pid.z.maxoutput [JOINT_1]MAX_OUTPUT
+setp pid.z.maxerror  [JOINT_1]MAX_ERROR
+setp pid.z.error-previous-target true
+setp drv.z.gain.in1  [JOINT_1]SIM_GAIN
+setp drv.z.lag1.gain [JOINT_1]SIM_LAG1_GAIN
+setp drv.z.lag2.gain [JOINT_1]SIM_LAG2_GAIN
+
+net joint1.enable  joint.1.amp-enable-out => pid.z.enable
+net joint1.pos-cmd joint.1.motor-pos-cmd  => pid.z.command
+net joint1.output  pid.z.output           => drv.z.gain.in0
+net joint1.drv-a   drv.z.gain.out         => drv.z.lag1.in
+net joint1.drv-b   drv.z.lag1.out         => drv.z.lag2.in
+net joint1.drv-vel drv.z.lag2.out         => drv.z.pos.in
+net joint1.pos-fb  drv.z.pos.out          => joint.1.motor-pos-fb pid.z.feedback
